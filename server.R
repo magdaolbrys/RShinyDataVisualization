@@ -9,7 +9,6 @@ shinyServer(function(input, output) {
       v$dataLoadDownload <- ! v$dataLoadDownload
     })
  
-    # wczytywanie danych 
     dataIn <- reactive({
       
       if(v$dataLoadDownload){
@@ -26,14 +25,14 @@ shinyServer(function(input, output) {
           x <- x[-1,]
           options(warn=-1)
           x <- data.frame(
-            'KRAJ' = country,
-            'KOBIETY' = as.integer(gsub(" p","",x[,1])),
-            'MĘŻCZYŹNI' = as.integer(gsub(" p","",x[,2])),
-            'TYDZIEŃ' = gsub("X","",rownames(x)), 
-            'LICZBA' = as.integer(gsub(" p","",x[,3]))
+            'COUNTRY' = country,
+            'WOMEN' = as.integer(gsub(" p","",x[,1])),
+            'MEN' = as.integer(gsub(" p","",x[,2])),
+            'WEEK' = gsub("X","",rownames(x)), 
+            'NUMBER' = as.integer(gsub(" p","",x[,3]))
             
           )
-          x <- x[order(as.numeric(substr(x$'TYDZIEŃ', 1, 4)), as.numeric(substr(x$'TYDZIEŃ', 6, 7))), ]
+          x <- x[order(as.numeric(substr(x$'WEEK', 1, 4)), as.numeric(substr(x$'WEEK', 6, 7))), ]
           options(warn=0)
           rownames(x) <- NULL
           
@@ -51,15 +50,15 @@ shinyServer(function(input, output) {
       
       
       
-      #filtrowanie danych na podstawie wybranych lat
+      # filtering data based on selected years
       if (!is.null(input$selectedYears) && length(input$selectedYears) > 0) {
-        x <- x[substr(x$'TYDZIEŃ', 1, 4) %in% input$selectedYears, ]}
+        x <- x[substr(x$'WEEK', 1, 4) %in% input$selectedYears, ]}
       
-      #filtrowanie danych na podstawie plci
+      # filtering data based on selected gender
       if (length(input$selectedGender) > 0) {
-        selected_columns <- c("TYDZIEŃ","KRAJ","LICZBA", input$selectedGender)}
+        selected_columns <- c("WEEK","COUNTRY","NUMBER", input$selectedGender)}
       else {
-        selected_columns <- c("TYDZIEŃ","KRAJ","LICZBA")
+        selected_columns <- c("WEEK","COUNTRY","NUMBER")
       }
       
       x <- x[, selected_columns, drop = FALSE]
@@ -71,7 +70,7 @@ shinyServer(function(input, output) {
     })
 
 
-    # tabela
+    # table
     output$dataSample <- renderTable({
       tmpData <- dataIn()
       
@@ -79,14 +78,14 @@ shinyServer(function(input, output) {
         return(tmpData)
       }
       else {
-        return("Brak danych")
+        return("No data available")
       }
       
     },include.rownames=FALSE)
 
  
     
-    # agregaty danych na mapie europy
+    # data aggregates on a map of Europe
     
     output$view <- renderGvis({
     dane <- dataIn()
@@ -95,28 +94,28 @@ shinyServer(function(input, output) {
       selectedGender <- input$selectedGender
       selectedYear <- as.character(input$selectedYears)
       
-      dane_filtr <- dane[substr(dane$TYDZIEŃ, 1, 4) == selectedYear, ]
+      dane_filtr <- dane[substr(dane$WEEK, 1, 4) == selectedYear, ]
       
       
       if (length(selectedGender) > 1) {
-        dane_filtr_sum <- aggregate(LICZBA ~ KRAJ, dane_filtr, sum)
-      } else if ("KOBIETY" %in% selectedGender) {
-        dane_filtr_sum <- aggregate(KOBIETY ~ KRAJ, dane_filtr, sum)
-      } else if ("MĘŻCZYŹNI" %in% selectedGender) {
-        dane_filtr_sum <- aggregate(MĘŻCZYŹNI ~ KRAJ, dane_filtr, sum)
+        dane_filtr_sum <- aggregate(NUMBER ~ COUNTRY, dane_filtr, sum)
+      } else if ("WOMEN" %in% selectedGender) {
+        dane_filtr_sum <- aggregate(WOMEN ~ COUNTRY, dane_filtr, sum)
+      } else if ("MEN" %in% selectedGender) {
+        dane_filtr_sum <- aggregate(MEN ~ COUNTRY, dane_filtr, sum)
       } else {
-        dane_filtr_sum <- data.frame( KRAJ = c("DE", "PL"), LICZBA = c(0, 0))
+        dane_filtr_sum <- data.frame( COUNTRY = c("DE", "PL"), NUMBER = c(0, 0))
       }
       
       
       
       d <- data.frame(dane_filtr_sum)
-      names(d)[2] <- "LICZBA"
+      names(d)[2] <- "NUMBER"
 
       
         chart <- gvisGeoChart(data = d, 
-                              locationvar ="KRAJ", 
-                              colorvar = "LICZBA",
+                              locationvar ="COUNTRY", 
+                              colorvar = "NUMBER",
                               options = list(
                                   region = "150",  
                                   displayMode = "regions",
@@ -138,7 +137,7 @@ shinyServer(function(input, output) {
     
 
     
-    # szeregi czasowe
+    # time series
     output$timeSeriesPlot <- renderPlotly({
       dane <- dataIn()
       
@@ -148,9 +147,9 @@ shinyServer(function(input, output) {
         selectedGender <- input$selectedGender
         
         if (selectedCountry == "PL") {
-          dane_filtr <- dane[dane$KRAJ == "PL", ]
+          dane_filtr <- dane[dane$COUNTRY == "PL", ]
         } else if (selectedCountry == "DE") {
-          dane_filtr <- dane[dane$KRAJ == "DE", ]
+          dane_filtr <- dane[dane$COUNTRY == "DE", ]
         } else {
           dane_filtr <- dane
         }
@@ -158,30 +157,30 @@ shinyServer(function(input, output) {
         dane_filtr1 <- dane_filtr
         
         if (length(selectedGender) > 1) {
-          dane_filtr1$LICZBA <- dane_filtr$KOBIETY + dane_filtr$MĘŻCZYŹNI
-        } else if ("KOBIETY" %in% selectedGender) {
-          dane_filtr1$LICZBA <- dane_filtr$KOBIETY
-        } else if ("MĘŻCZYŹNI" %in% selectedGender) {
-          dane_filtr1$LICZBA <- dane_filtr$MĘŻCZYŹNI
+          dane_filtr1$NUMBER <- dane_filtr$WOMEN + dane_filtr$MEN
+        } else if ("WOMEN" %in% selectedGender) {
+          dane_filtr1$NUMBER <- dane_filtr$WOMEN
+        } else if ("MEN" %in% selectedGender) {
+          dane_filtr1$NUMBER <- dane_filtr$MEN
         } else {
-          dane_filtr1$LICZBA <- rep(0, length(dane_filtr$LICZBA))
+          dane_filtr1$NUMBER <- rep(0, length(dane_filtr$NUMBER))
         }
 
         wykres <- plot_ly(
           data = dane_filtr1,
-          x = ~TYDZIEŃ,
-          y = ~LICZBA, 
-          color = ~KRAJ,
+          x = ~WEEK,
+          y = ~NUMBER, 
+          color = ~COUNTRY,
           type = "scatter",
           mode = "lines+markers"
         ) %>%
           layout(
             xaxis = list(
-              title = "Tydzień",
+              title = "WEEK",
               categoryorder = "array",
-              categoryarray = unique(dane$TYDZIEŃ)
+              categoryarray = unique(dane$WEEK)
             ),
-            yaxis = list(title = "Liczba"),
+            yaxis = list(title = "NUMBER"),
             showlegend = TRUE
           )
         
