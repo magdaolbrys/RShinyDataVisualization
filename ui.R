@@ -1,28 +1,26 @@
 
 shinyUI(fluidPage(
 
-    titlePanel("Wizualizacja Danych"),
+    titlePanel("Data Visualization"),
 
     sidebarLayout(
 
         sidebarPanel(
 
-            # pobieranie danych 
-            actionButton("getDataFromServer", "Pobierz / Usuń dane"),
+            actionButton("getDataFromServer", "ADD / DELETE DATA"),
             
             selectInput(
               "selectedYears",
-              "Wybierz rok:",
+              "Choose year:",
               choices = 2000:2023,
               selected = 2022
             ),
             
-            # wybór płci
             checkboxGroupInput(
               "selectedGender",
-              "Wybierz płeć (aby zwizualizować sumę zaznacz obydwie):",
-              choices = c("KOBIETY", "MĘŻCZYŹNI"),
-              selected = c("KOBIETY", "MĘŻCZYŹNI")
+              "Select gender (to visualize the total number, select both:",
+              choices = c("WOMEN", "MEN"),
+              selected = c("WOMEN", "MEN")
             ),
 
 
@@ -31,22 +29,18 @@ shinyUI(fluidPage(
 
         mainPanel(
 
-            # panel zakladek  
             tabsetPanel(type = "tabs",
               
-                # tabela 
-                tabPanel("Dane", tableOutput("dataSample")),
+                tabPanel("Data Table", tableOutput("dataSample")),
                 
-                # agregaty danych na mapie europy
-                tabPanel("Agregaty danych", htmlOutput("view")),
+                tabPanel("Aggregates", htmlOutput("view")),
                 
-                # szeregi czasowe
-                tabPanel("Szeregi czasowe", 
+                tabPanel("Time Series", 
                          selectInput(
                            "selectedCountry",
-                           "Wybierz kraj:",
-                           choices = c("PL", "DE", "PL i DE"),
-                           selected = "PL i DE"
+                           "Select Country:",
+                           choices = c("PL", "DE", "both"),
+                           selected = "both"
                          ),
                          plotlyOutput("timeSeriesPlot")
                 )
